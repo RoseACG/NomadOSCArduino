@@ -1,0 +1,48 @@
+#include <Ethernet.h> // Incluimos la librería Ethernet
+#include <EthernetUdp.h> // Incluimos la librería UDP
+#include <OSCMessage.h> // Incluimos la librería OSC
+
+// Definimos la dirección IP y el puerto de la consola Nomad
+IPAddress nomadIP(127, 0, 0, 1); // Dirección de loopback en el mismo Mac
+const unsigned int nomadPort = 8000; // Puerto OSC predeterminado de la consola Nomad
+
+// Definimos el objeto UDP
+EthernetUDP Udp;
+
+void setup() {
+  // Inicializamos el puerto serie para mensajes de depuración
+  Serial.begin(9600);
+
+  // Inicializamos la conexión Ethernet y el objeto UDP
+  Ethernet.begin(); // Reemplaza 'mac' con la dirección MAC de tu placa Arduino
+  Udp.begin(localPort);
+}
+
+void loop() {
+  // Creamos un mensaje OSC. seleccionar un canal concreto
+  OSCMessage selectChannel("/eos/outgoing/select");
+  selectChannel.add("1"); // Puedes agregar diferentes tipos de datos (int, float, etc.) al mensaje según sea necesario
+
+  // Enviamos el mensaje OSC a la consola Nomad
+  Udp.beginPacket(nomadIP, nomadPort);
+  selectChannel.send(Udp);
+  Udp.endPacket();
+  
+
+  // Borramos el contenido del mensaje para reutilizarlo en la siguiente iteración del bucle
+  selectChannel.empty();
+
+  // Esperamos un tiempo antes de enviar el siguiente mensaje (opcional)
+  delay(1000); // Espera 1 segundo antes de enviar el siguiente mensaje, ajusta según sea necesario
+
+
+  //Mensaje OSC para decirle a la nomad de poner el canal anterior a full
+  OSCMessage setIntensity("/eos/user/1/Intensity/Full");
+  setIntensity.beginPacket(nomadIP,nomadPort);
+  setIntensity.send(Udp);
+  Udp.endPacket();
+  setIntensity.empty(); //este funciona como un clear
+  
+
+  delay(1000); 
+}
